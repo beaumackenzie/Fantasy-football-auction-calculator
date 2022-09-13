@@ -1,0 +1,348 @@
+```{r}
+
+
+auction <- read.csv("fangraphs-auction-calculator.csv")
+
+(auction$IP[20] - mean(auction$IP))/sd(auction$IP)
+
+auction2 <- auction[1:145,]
+
+
+
+
+(auction2$IP[20] - mean(auction2$IP))/sd(auction2$IP)
+
+auction$ptsnormal <- auction$PTS-21.98
+
+auction$ptsnormal2 <- auction$PTS-13.0
+
+
+(100/12)*1.179
+
+#'* (BUDGET/roster size) x zscore of points*
+
+
+auction2$POS[145] <- "RP" 
+
+auction2$index <- seq(1,length(auction2$POS),1)
+
+auction2$value <- ((auction2$IP - predict(lm(IP ~ as.factor(POS), data = auction2))) + 24)
+
+auction2$value2 <- (auction2$IP - mean(auction2$IP))/sd(auction2$IP)
+
+auction2$value2 <- auction2$value2+abs(min(auction2$value2))
+
+
+auction2$value3 <-(100/12)*((auction2$IP)/min(auction2$IP))*((auction2$IP)/max(auction2$IP))
+
+auction2$value3 <- auction2$value3-min(auction2$value3) + 1
+
+
+
+
+```
+
+
+
+```{r}
+
+
+
+auction <- read.csv("FanGraphs Leaderboard (51).csv")
+
+reliever <- read.csv("Reliever Season.csv")
+
+auction$pos <- NA
+
+auction$pos <- ifelse(auction$Name %in% reliever$Name, "RP", "SP")
+
+#'[ Change stat
+auction <- auction[order(auction$SO, decreasing = TRUE),]
+
+noteams <- 5
+
+noplayersonroster <- 12
+
+budget <- 100
+
+totaldollars <- noteams*budget
+
+pool <- noteams*noplayersonroster
+
+auction2 <- auction[1:(pool),]
+#'* Number of players per roster times number of teams *
+
+
+
+
+
+
+#'* No, it adjusts for the amount/team because it will be a higher percentage with less players/ less teams*
+
+
+#'[ Change stat
+
+auction2$pct <- auction2$SO/sum(auction2$SO)
+
+auction2$pct2 <- auction2$pct-min(auction2$pct)
+
+
+auction2$value <- auction2$pct2*1000*((totaldollars-pool)/(sum(auction2$pct2)*1000))
+
+auction2$value <- auction2$value+1
+
+sum(auction2$value)
+
+
+
+
+```
+
+
+```{r}
+
+library(dplyr)
+
+
+reliever <- read.csv("ZIPS RELIEVERS.csv")
+
+starter <- read.csv("ZIPS Starters.csv")
+
+reliever$pos <- "RP"
+
+starter$pos <- "SP"
+
+reliever <- reliever %>% select(Name, SO, pos)
+
+starter <- starter %>% select(Name, SO, pos)
+
+auction <- rbind(starter, reliever)
+
+
+#'[ Find the percentage change for each position, the top 10 SP, the top 40 RP, and the top 10 P outside of that
+#'
+#'[ Use that to allocate how much of the 2000 you will spend on each sector
+#'
+#'
+#'[ Essentially, do them seperately, but then merge by position. So there should be a player at each position that is worth $1.
+#'
+
+
+#'[ Change stat
+auction <- auction[order(auction$SO, decreasing = TRUE),]
+
+auctionSP <- auction %>% filter(pos == "SP")
+auctionSP <- auctionSP[1:10,]
+
+auctionRP <- auction %>% filter(pos == "RP")
+auctionRP <- auctionRP[1:40,]
+
+auctionP <- auction %>% filter(!(Name %in% c(auctionSP$Name, auctionRP$Name)))
+auctionP <- auctionP[1:10,]
+
+
+auction2 <- rbind(auctionSP, auctionRP, auctionP)
+
+
+noteams <- 10
+
+noplayersonroster <- 12
+
+budget <- 200
+
+totaldollars <- noteams*budget
+
+pool <- noteams*noplayersonroster
+
+
+
+auction2SP <- auction2 %>% filter(pos == "SP")
+auction2RP <- auction2 %>% filter(pos == "RP")
+
+
+
+auction2SP$pct <- auction2SP$SO/sum(auction2SP$SO)
+
+auction2SP$pct2 <- auction2SP$pct-min(auction2SP$pct)
+
+
+
+auction2RP$pct <- auction2RP$SO/sum(auction2RP$SO)
+
+auction2RP$pct2 <- auction2RP$pct-min(auction2RP$pct)
+
+
+spsum <- sum(auction2SP$pct2)
+
+rpsum <- sum(auction2RP$pct2)
+
+
+
+
+shiz <- read.csv("fangraphs-auction-calculator.csv")
+
+shiz <- shiz[1:60,]
+
+shiz$POS[shiz$Name == "Jeff Hoffman"] <- "RP"
+
+
+shiz %>% group_by(POS) %>% summarise(sum(Dollars))
+
+
+
+spsum/(spsum+rpsum)
+
+rpsum/(spsum+rpsum)
+
+
+
+
+#'[ Dollar value is represented by the percentage of total points a position can get
+
+dolsp <- totaldollars*sum(auction2SP$SO)/(sum(auction2RP$SO)+sum(auction2SP$SO))
+
+dolrp <- totaldollars*sum(auction2RP$SO)/(sum(auction2RP$SO)+sum(auction2SP$SO))
+
+
+
+auction2SP$value <- auction2SP$pct2*1000*((dolsp-20)/(sum(auction2SP$pct2)*1000))
+
+auction2SP$value <- auction2SP$value+1
+
+
+
+auction2RP$value <- auction2RP$pct2*1000*((dolrp-40)/(sum(auction2RP$pct2)*1000))
+
+auction2RP$value <- auction2RP$value+1
+
+
+
+
+auction2 <- rbind(auction2SP, auction2RP)
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+#'[ FANTASY FOOTBALL AUCTION RANKINGS
+
+#'[ 12 QBS
+
+#'[ 2 RB
+
+#'[ 2 WR
+
+#'[ 1 TE
+
+
+#'[ 1 FLEX (no qb)
+
+
+
+#'[ 12 teams
+
+
+
+espnauction <- espn %>% select(Player, Pos, Points)
+
+
+espnauction <- espnauction[order(espnauction$Points, decreasing = TRUE),]
+
+espnQBs <- espn %>% filter(Pos == "QB")
+espnQBs <- espnQBs[1:12,]
+
+espnRBs <- espn %>% filter(Pos == "RB")
+espnRBs <- espnRBs[1:24,]
+
+espnWRs <- espn %>% filter(Pos == "WR")
+espnWRs <- espnWRs[1:24,]
+
+espnTEs <- espn %>% filter(Pos == "TE")
+espnTEs <- espnTEs[1:12,]
+
+
+espnFLEX <- espn %>% filter(Pos != "QB" & !(Player %in% c(espnQBs$Player, espnWRs$Player, espnRBs$Player, espnTEs$Player)))
+espnFLEX <- espnFLEX[1:36,]
+
+
+
+noteams <- 12
+
+budget <- 200
+
+totaldollars <- noteams*budget
+
+espnauction <- rbind(espnQBs, espnRBs, espnWRs, espnTEs, espnFLEX)
+
+
+
+espnQB <- espnauction %>% filter(Pos == "QB")
+espnQB$pct <- espnQB$Points/sum(espnQB$Points)
+espnQB$pct2 <- espnQB$pct-min(espnQB$pct)
+
+
+espnRB <- espnauction %>% filter(Pos == "RB")
+espnRB$pct <- espnRB$Points/sum(espnRB$Points)
+espnRB$pct2 <- espnRB$pct-min(espnRB$pct)
+
+
+espnWR <- espnauction %>% filter(Pos == "WR")
+espnWR$pct <- espnWR$Points/sum(espnWR$Points)
+espnWR$pct2 <- espnWR$pct-min(espnWR$pct)
+
+
+espnTE <- espnauction %>% filter(Pos == "TE")
+espnTE$pct <- espnTE$Points/sum(espnTE$Points)
+espnTE$pct2 <- espnTE$pct-min(espnTE$pct)
+
+
+
+dolqb <- totaldollars*(sum(espnQB$Points)/sum(espnauction$Points))
+dolrb <- totaldollars*(sum(espnRB$Points)/sum(espnauction$Points))
+dolwr <- totaldollars*(sum(espnWR$Points)/sum(espnauction$Points))
+dolte <- totaldollars*(sum(espnTE$Points)/sum(espnauction$Points))
+
+
+numrb <- length(espnauction$Pos[espnauction$Pos == "RB"])
+numwr <- length(espnauction$Pos[espnauction$Pos == "WR"])
+numte <- length(espnauction$Pos[espnauction$Pos == "TE"])
+
+
+espnQB$value <- espnQB$pct2*1000*((dolqb-12)/(sum(espnQB$pct2)*1000))
+espnQB$value <- espnQB$value+1
+
+espnRB$value <- espnRB$pct2*1000*((dolrb-numrb)/(sum(espnRB$pct2)*1000))
+espnRB$value <- espnRB$value+1
+
+espnWR$value <- espnWR$pct2*1000*((dolwr-numwr)/(sum(espnWR$pct2)*1000))
+espnWR$value <- espnWR$value+1
+
+espnTE$value <- espnTE$pct2*1000*((dolte-numte)/(sum(espnTE$pct2)*1000))
+espnTE$value <- espnTE$value+1
+
+
+espn_auction_ <- rbind(espnQB, espnRB, espnWR, espnTE)
+
+
+espn_auction_ <- espn_auction_[order(espn_auction_$index, decreasing = TRUE),]
+
+espn_auction_ <- espn_auction_ %>% select(Player, index, Pos, Points, draftorder, value)
+
+
+
+espn_auction_ <- espn_auction_ %>% filter((index >= 0 & !(Player %in% c())) | Player %in% c())
+
+espn_auction_ <- espn_auction_ %>% filter(!(Pos %in% c()))
+
+
+sum(espn_auction_$value)
+
+
+```
